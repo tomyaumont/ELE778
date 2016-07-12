@@ -45,18 +45,22 @@ private:
 	double theta;	// ??? je me souviens plus ce que c'est mais il doit etre a zero
 	double alpha;	// taux d'apprentissage
 	vector<double> weights;	// vecteur de poids du neurone
+	vector<double> delatW;	// vecteur de variation des poids en fonction de l'erreur
 	PosID_s id;		// position du neurone dans le reseau
 
 public:
 	Neurone( void );
 	~Neurone( void );
 
+	void InitDelatW( int val );
 	void AddWeight( double val );
+	void UpdateDeltaW( int val, vector<Neurone> inputs );
 
 	void SetData( double val );
 	void SetTheta( double val );
 	void SetDelta( double val );
 	void SetAlpha( double val );
+	void SetActivation( double val );
 	void CalcData( vector<double> inputs );
 	void CalcActivation( string activationFct );
 	void CalcDelta( void );
@@ -67,7 +71,7 @@ public:
 	double GetTheta( void );
 	double GetDelta( void );
 	double GetAlpha( void );
-	double GetWeight( int ind );
+	vector<double> GetWeights( void );
 	double GetActivation( void );
 	PosID_s GetID( void );
 };
@@ -90,12 +94,14 @@ public:
 																, double alpha = 0);
 	bool RmvNeurone( PosID_s ID );
 
-
+	void InitActivations( int nbNeuronesInLayer );
 	void SetActivations( void );
 
 	vector<Neurone> GetNeurones( void );
 	vector<double> GetActivations( void );
 
+	void CalcNeuroneXData( int neuroneIt, vector<double> bestData );
+	void CalcNeuroneXActivation( int neuroneIt, string function );
 
 	int GetNeuronesSize( void );
 	PosID_s GetNeuroneXID( int x );

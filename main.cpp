@@ -10,7 +10,9 @@
 *
 *	Probleme a regler:	Eventuellemet il va falloir gerer les erreur de plusieurs fonctions qui retourne void pour l'instant
 *
-*	Chose a faire :
+*	Chose a faire :		Vérifier les résultat de la phase 1 avec des calculs fait a la mains
+*
+*	Lien pour fonction activation a faire (tangeant hyperbolique) : http://www.statsoft.fr/concepts-statistiques/reseaux-de-neurones-automatises/reseaux-de-neurones-automatises.php
 *						OBLIGATOIRE:
 *							Coder les deux activations, choix deja present ( sigmoide + autre )
 *							Validation croisee plus temps max d'apprentissage comme critere arret learning
