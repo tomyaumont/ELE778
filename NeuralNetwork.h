@@ -22,15 +22,15 @@ using namespace std;
 // Genere un double de maniere aleatoire entre minLimit et maxLimit
 inline double fRand(double minLimit, double maxLimit)
 {
-    double tmp = (double)rand() / RAND_MAX;
-    return minLimit + tmp * (maxLimit - minLimit);
+	double tmp = (double)rand() / RAND_MAX;
+	return minLimit + tmp * (maxLimit - minLimit);
 }
 
 /*-----------------------------------------------------------------------------------*/
 // Genere un double de maniere aleatoire entre minLimit et maxLimit
 typedef struct PosID_s
 {
-    int layer;
+	int layer;
 	int rang;
 } PosID_s;
 
@@ -41,6 +41,7 @@ class Neurone
 private:
 	double data;
 	double activation;
+	double activationDerivee; //Xavier
 	double delta;	// erreur
 	double theta;	// ??? je me souviens plus ce que c'est mais il doit etre a zero
 	double alpha;	// taux d'apprentissage
@@ -48,28 +49,29 @@ private:
 	PosID_s id;		// position du neurone dans le reseau
 
 public:
-	Neurone( void );
-	~Neurone( void );
+	Neurone(void);
+	~Neurone(void);
 
-	void AddWeight( double val );
+	void AddWeight(double val);
 
-	void SetData( double val );
-	void SetTheta( double val );
-	void SetDelta( double val );
-	void SetAlpha( double val );
-	void CalcData( vector<double> inputs );
-	void CalcActivation( string activationFct );
-	void CalcDelta( void );
-	void SetID( PosID_s val );
-	
+	void SetData(double val);
+	void SetTheta(double val);
+	void SetDelta(double val);
+	void SetAlpha(double val);
+	void CalcData(vector<double> inputs);
+	void CalcActivation(string activationFct);
+	double CalcActivationDerivee(double data, string activationFct); //Xavier
+	void CalcDelta(vector<double> inputs, string activFct, double learnRate, bool isLastLayer); //Xavier
+	void SetID(PosID_s val);
 
-	double GetData( void );
-	double GetTheta( void );
-	double GetDelta( void );
-	double GetAlpha( void );
-	double GetWeight( int ind );
-	double GetActivation( void );
-	PosID_s GetID( void );
+
+	double GetData(void);
+	double GetTheta(void);
+	double GetDelta(void);
+	double GetAlpha(void);
+	double GetWeight(int ind);
+	double GetActivation(void);
+	PosID_s GetID(void);
 };
 /*-----------------------------------------------------------------------------------*/
 // Objet qui représente une couche
@@ -79,26 +81,31 @@ private:
 	vector<Neurone> neurones;	// liste de neurone de la couche
 	vector<double> activations; /* vecteur contenant la valeur d'activation de chaque
 								neurone de la couche	*/
+	vector<double> deltas; //Xavier
+						   /* vecteur contenant le delta de chaque
+						   neurone de la couche	*/
 
 public:
-	Layer( void );
-	~Layer( void );
+	Layer(void);
+	~Layer(void);
 
-	void InitWeight( double min, double max, int nbWeigh );
+	void InitWeight(double min, double max, int nbWeigh);
 
-	void AddNeurone( int layer, double data = 0, double theta = 0, double delta = 0
-																, double alpha = 0);
-	bool RmvNeurone( PosID_s ID );
-
-
-	void SetActivations( void );
-
-	vector<Neurone> GetNeurones( void );
-	vector<double> GetActivations( void );
+	void AddNeurone(int layer, double data = 0, double theta = 0, double delta = 0
+		, double alpha = 0);
+	bool RmvNeurone(PosID_s ID);
 
 
-	int GetNeuronesSize( void );
-	PosID_s GetNeuroneXID( int x );
+	void SetActivations(void);
+	void SetDeltas(void); //Xavier
+
+	vector<Neurone> GetNeurones(void);
+	vector<double> GetActivations(void);
+	vector<double> GetDeltas(void); //Xavier
+
+
+	int GetNeuronesSize(void);
+	PosID_s GetNeuroneXID(int x);
 };
 /*-----------------------------------------------------------------------------------*/
 // Objet qui représente le réseau de neurones
@@ -112,31 +119,31 @@ private:
 	int out;
 
 	// Calcul la donnee et l'activaiton de chaque neurone
-	void PhaseOne( FileInfo trainFile, string activFct );
-	void PhaseTwo( void );		// Calcul l'erreur (delta) de chaque neurone
-	void PhaseThree( void );	// Calcul et actualise les poids
-	void CrossValidation( vector<FileInfo> vcFiles );
+	void PhaseOne(FileInfo trainFile, string activFct);
+	void PhaseTwo(FileInfo trainFiles, string activFct);	//Xavier	// Calcul l'erreur (delta) de chaque neurone
+	void PhaseThree(void);	// Calcul et actualise les poids
+	void CrossValidation(vector<FileInfo> vcFiles);
 
 public:
-	NeuralNetwork( void );
-	~NeuralNetwork( void );
-	
-	void InitNetwork( ConfigFile* config );
+	NeuralNetwork(void);
+	~NeuralNetwork(void);
+
+	void InitNetwork(ConfigFile* config);
 	void InitLayers(int nbNeuronesIn, int nbHiddenLayers, int nbNeuroneHiddenLayer,
-																	int nbNeuroneOut);
-	void InitWeight( double min, double max );
+		int nbNeuroneOut);
+	void InitWeight(double min, double max);
 
 	//L'entrainement est arrete par le delai ou la validation croisee
-	bool Train( vector<FileInfo> inputs, int learnDelay, double errorMargin,
-																	string activFct ); 
-	bool Test( void );
+	bool Train(vector<FileInfo> inputs, int learnDelay, double errorMargin,
+		string activFct);
+	bool Test(void);
 
 
-	void SetNbInput( int nbDataInput );
-	int GetNbInput( void );
+	void SetNbInput(int nbDataInput);
+	int GetNbInput(void);
 
 
-	bool IDExist( PosID_s );
+	bool IDExist(PosID_s);
 };
 /*-----------------------------------------------------------------------------------*/
 
