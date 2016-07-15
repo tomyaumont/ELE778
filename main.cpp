@@ -10,7 +10,9 @@
 *
 *	Probleme a regler:	Eventuellemet il va falloir gerer les erreur de plusieurs fonctions qui retourne void pour l'instant
 *
-*	Chose a faire :
+*	Chose a faire :		Vérifier les résultat du train avec des calculs fait a la main et comment arreter en fonciton de l'erreur (VC), c'est quoi l'erreur?
+*
+*	Lien pour fonction activation a faire (tangeant hyperbolique) : http://www.statsoft.fr/concepts-statistiques/reseaux-de-neurones-automatises/reseaux-de-neurones-automatises.php
 *						OBLIGATOIRE:
 *							Coder les deux activations, choix deja present ( sigmoide + autre )
 *							Validation croisee plus temps max d'apprentissage comme critere arret learning
@@ -83,18 +85,13 @@ bool main( void )
 		cout << "Triage terminee" << endl;
 	}
 
-	cout << "Initialisation du reseau de neurones" << endl;
 	neuralNetwork.InitNetwork( &settings );
-	cout << "Initialisation terminee" << endl;
 
-	cout << "Apprentissage en cours..." << endl;
-	neuralNetwork.Train( trainFiles.GetFileList(), settings.GetLearnMaxDelay(),
-							settings.GetErrorMargin(), settings.GetActivationFct() );
-	cout << "Apprentissage terminee" << endl;
+	neuralNetwork.Train( trainFiles.GetFileList(), vcFiles.GetFileList(),
+							settings.GetLearnMaxDelay(), settings.GetErrorMargin(),
+							settings.GetActivationFct() );
 
-	cout << "Test en cours..." << endl;
 	neuralNetwork.Test(  );
-	cout << "Test terminee" << endl;
 
 
 	PrintDebugMessage( SUCCESS );
