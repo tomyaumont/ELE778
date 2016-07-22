@@ -54,6 +54,7 @@ private:
 	double initWeightMax;
 	double learnRate;
 	int nbEpoch;
+	int normTheta;
 
 public:
 	ConfigFile( void );		// Constructeur
@@ -83,6 +84,7 @@ public:
 	void SetInitWeightMax( double );
 	void SetLearnRate( double );
 	void SetNbEpoch( int );
+	void SetNormTheta( int );
 
 	// Les recuperateurs pour les information concernant les fichier d'entree
 	string GetInfoTrainPath( void );
@@ -103,6 +105,7 @@ public:
 	double GetInitWeightMax( void );
 	double GetLearnRate( void );
 	int GetNbEpoch( void );
+	int GetNormTheta( void );
 
 	void PrintConfig( void );
 };
@@ -179,7 +182,6 @@ private:
 	vector<FileInfo> filesList;					// Liste des fichier � traiter
 
 	void CreateDataBaseArchitecture( void );// Cr�e l'architecture de sauvegarde
-	void MoveOldList( void );
 public:
 	InputFiles( void );	// Constructeur
 	bool CreateSortedFiles( string pathFileName, int nbDataPerFile );

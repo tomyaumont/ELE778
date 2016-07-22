@@ -37,6 +37,8 @@
 
 using namespace std;
 
+inline void MoveOldList( void );
+
 bool main( void )
 {
 	// Objet qui va contenir toutes les information du fichier config.ini
@@ -78,6 +80,7 @@ bool main( void )
 	{
 		cout << endl << "Triage des fichiers d'entrees en cours..." << endl;
 
+		MoveOldList();
 		trainFiles.CreateSortedFiles( settings.GetInfoTrainPath() , nbData );
 		testFiles.CreateSortedFiles( settings.GetInfoTestPath() , nbData );
 		vcFiles.CreateSortedFiles( settings.GetInfoVCPath() , nbData );
@@ -90,7 +93,8 @@ bool main( void )
 	//	Effectue l'apprentissage selon les fichier lu et les parametres du config.ini
 	neuralNetwork.Train( trainFiles.GetFileList(), vcFiles.GetFileList(),
 							settings.GetLearnMaxDelay(), settings.GetErrorMargin(),
-							settings.GetActivationFct(), settings.GetNbEpoch() );
+							settings.GetActivationFct(), settings.GetNbEpoch(),
+							settings.GetNormTheta() );
 	//	Demande et sauvegarde au besoin les parametre de l'apprentissage
 	neuralNetwork.SaveTrainParam( settings );
 	// Test le reseau de neurone avec des fichiers differents de l'apprentissage
@@ -100,4 +104,19 @@ bool main( void )
 	PrintDebugMessage( SUCCESS );
 	system( "pause" );
 	return EXIT_SUCCESS;
+}
+
+/*-------------------------------------------------------------------------------------
+*	Nom			:	MoveOldList
+*	Écris par	:	Tomy Aumont
+*
+*	Description	:	Deplace les liste de fichier vers le repertoire old_list qui va
+*					garder en memoire seulement la derniere liste cree.
+-------------------------------------------------------------------------------------*/
+inline void MoveOldList( void )
+{
+	system( "mkdir old_list 2> null.dump" );
+	system( "move info_train.txt old_list 2> null.dump" );
+	system( "move info_test.txt old_list 2> null.dump" );
+	system( "move info_vc.txt old_list 2> null.dump" );
 }

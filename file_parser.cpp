@@ -138,6 +138,12 @@ bool ConfigFile::ReadConfig()
 				size_t info_pos = line.find("=") +2;
 				this->nbEpoch = atoi(line.substr( info_pos ).c_str());
 			}
+			// Recupere l'information qui determine si on normalise les theta ou pas
+			else if( string::npos != line.find("normTheta") )
+			{
+				size_t info_pos = line.find("=") +2;
+				this->normTheta = atoi(line.substr( info_pos ).c_str());
+			}
 		}
 		return EXIT_SUCCESS;
 	}
@@ -192,6 +198,7 @@ void ConfigFile::PrintConfig( void )
 	cout << "\tE. Initialisation des poids maximale \t: " << this->initWeightMax << endl;
 	cout << "\tF. Taux d'apprentissage \t\t: " << this->learnRate << endl;
 	cout << "\tG. Nombre d'epoque d'apprentissage \t: " << this->nbEpoch << endl;
+	cout << "\tH. Normalisation des theta? \t\t: " << this->normTheta << endl;
 
 	PrintDashLine();
 }
@@ -243,13 +250,14 @@ void ConfigFile::ModifyConfig( void )
 			"\t7. Nombre de couches cachees" << endl <<
 			"\t8. Nombre de neurones par couche cachee" << endl <<
 			"\t9. Nombre de neurones de sortie (10)" << endl <<
-			"\tA. Fonction d'activation (sigmoide ou ...)" << endl <<
+			"\tA. Fonction d'activation (sigmoide ou tanh)" << endl <<
 			"\tB. Temps maximal d'apprentissage (seconde)" << endl <<
 			"\tC. Marge d'erreur acceptable" << endl <<
 			"\tD. Initialisation des poids minimale" << endl <<
 			"\tE. Initialisation des poids maximale" << endl <<
 			"\tF. Taux d'apprentissage" << endl <<
 			"\tG. Nombre d'epoque d'apprentissage" << endl <<
+			"\tH. Nomralisation des theta?" << endl <<
 			"\t0. Terminer la modification" << endl <<
 			"Votre choix : ";
 
@@ -313,7 +321,7 @@ void ConfigFile::ModifyConfig( void )
 				cout << endl << "Quel parametre voulez-vous modifier? : ";
 				break;
 			}
-		case '5':
+		case '5': case 'H':
 			{
 				cout << "Entrez oui (O) ou non (N) : ";
 				cin >> tmpStr; // Recupere la lettre entree
@@ -326,9 +334,19 @@ void ConfigFile::ModifyConfig( void )
 				}
 
 				if( "O" == tmpStr || "OUI" == tmpStr )
-					this->sorted = true;
+				{
+					if( parametre == '5' )
+						this->sorted = true;
+					else if(parametre == 'H' )
+						this->normTheta = true;
+				}
 				else if( "N" == tmpStr || "NON" == tmpStr )
-					this->sorted = false;
+				{
+					if( parametre == '5' )
+						this->sorted = false;
+					else if(parametre == 'H' )
+						this->normTheta = false;
+				}
 				cout << endl << "Quel parametre voulez-vous modifier? : ";
 				break;
 			}
@@ -351,7 +369,7 @@ void ConfigFile::ModifyConfig( void )
 			}
 		default:
 			{
-				cout <<"Veuillez entrer un chiffre de 0 -> 9 ou une lettre de a->f : ";
+				cout <<"Veuillez entrer un chiffre de 0 -> 9 ou une lettre de a->h : ";
 				break;
 			}	
 		}
@@ -386,7 +404,8 @@ void ConfigFile::WriteConfig( void )
 				"initWeightMin = " << this->initWeightMin << endl <<
 				"initWeightMax = " << this->initWeightMax << endl <<
 				"learnRate = " << this->learnRate << endl <<
-				"nbEpoch = " << this->nbEpoch;
+				"nbEpoch = " << this->nbEpoch << endl <<
+				"normTheta = " << this->normTheta;
 
 	ofsConfig.close();
 }
@@ -557,6 +576,17 @@ void ConfigFile::SetNbEpoch( int val )
 	this->nbEpoch = val;
 }
 /*-------------------------------------------------------------------------------------
+*	Nom			:	SetNormTheta
+*	Écris par	:	Tomy Aumont
+*
+*	Description	:	Assigne la valeur du parametre qui determine si le reseau fera la
+*					normalisation des theta ou pas
+*------------------------------------------------------------------------------------*/
+void ConfigFile::SetNormTheta( int val )
+{
+	this->normTheta = val;
+}
+/*-------------------------------------------------------------------------------------
 *	Nom			:	getInfoTestPath
 *	Écris par	:	Tomy Aumont
 *
@@ -719,6 +749,17 @@ double ConfigFile::GetLearnRate( void )
 int ConfigFile::GetNbEpoch( void )
 {
 	return this->nbEpoch;
+}
+/*-------------------------------------------------------------------------------------
+*	Nom			:	GetNormTheta
+*	Écris par	:	Tomy Aumont
+*
+*	Description	:	Recupere la valeur du parametre qui determine si le reseau fera la
+*					normalisation des theta ou pas
+*------------------------------------------------------------------------------------*/
+int ConfigFile::GetNormTheta( void )
+{
+	return this->normTheta;
 }
 /*************************************************************************************/
 /*							Fonctions de la classe Pathfile							 */
@@ -1352,7 +1393,6 @@ bool InputFiles::SaveDataToTxt( void )
 	PrintDebugMessage( "Saving best data..." );
 
 	this->CreateDataBaseArchitecture();
-	this->MoveOldList();
 
 	// Sauvegarde chaque structure de fichier traitee dans un .txt
 	for ( int i=0; i < this->filesList.size(); i++ )
@@ -1369,20 +1409,6 @@ bool InputFiles::SaveDataToTxt( void )
 	}
 	PrintDebugMessage( DBG_MSG_COMPLETE );
 	return EXIT_SUCCESS;
-}
-/*-------------------------------------------------------------------------------------
-*	Nom			:	MoveOldList
-*	Écris par	:	Tomy Aumont
-*
-*	Description	:	Deplace les liste de fichier vers le repertoire old_list qui va
-*					garder en memoire seulement la derniere liste cree.
--------------------------------------------------------------------------------------*/
-void InputFiles::MoveOldList( void )
-{
-	system( "mkdir old_list 2> null.dump" );
-	system( "move info_train.txt old_list" );
-	system( "move info_test.txt old_list" );
-	system( "move info_vc.txt old_list" );
 }
 /*-------------------------------------------------------------------------------------
 *	Nom			:	LoadSortedFiles

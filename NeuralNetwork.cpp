@@ -710,7 +710,7 @@ void NeuralNetwork::InitLayers(int nbNeuronesIn, int nbHiddenLayers,
 -------------------------------------------------------------------------------------*/
 bool NeuralNetwork::Train( vector<FileInfo> trainFiles, vector<FileInfo> vcFiles,
 							int learnDelay, double errorMargin, string activFct,
-							int nbEpoch )
+							int nbEpoch, int normTheta )
 {
 	int epochIt = 0;
 	int fileInd;
@@ -738,11 +738,13 @@ bool NeuralNetwork::Train( vector<FileInfo> trainFiles, vector<FileInfo> vcFiles
 			this->PhaseTwo( trainFiles[fileInd], activFct, OP_TRAIN );
 			//	Calcul et actualise les poids de tout le reseau
 			this->PhaseThree( trainFiles[fileInd], OP_TRAIN );
-			//Normalise les thetas pour reduire le poids des extrêmes
-			this->NormaliseThetas(trainFiles[fileIt], activFct, OP_TRAIN);
+
+			if( normTheta )
+				//Normalise les thetas pour reduire le poids des extrêmes
+				this->NormaliseThetas(trainFiles[fileIt], activFct, OP_TRAIN);
 			
 
-			this->trainErrPercent = this->trainAccErr / (fileIt+1);
+			this->trainErrPercent = this->trainAccErr / ( (fileIt+1) + (trainFiles.size())*epochIt );
 			//this->trainErrPercent = this->trainAccErr / trainFiles.size();
 		}
 
@@ -753,7 +755,7 @@ bool NeuralNetwork::Train( vector<FileInfo> trainFiles, vector<FileInfo> vcFiles
 		deltaTime = endTime - startTime;
 	}while((epochIt++ < nbEpoch) && (deltaTime < learnDelay) && cvResult );
 
-	cout << "Apprentissage terminee" << endl;
+	cout << "Apprentissage terminee, % erreur = " << trainErrPercent << endl;
 	return EXIT_SUCCESS;
 }
 /*-------------------------------------------------------------------------------------
@@ -900,17 +902,22 @@ void NeuralNetwork::NormaliseThetas(FileInfo trainFile, string activFct, int opT
 	double thetaTemp;
 	double thetaNorm;
 
-	int lastLayer = this->layers.size();
 
-	for (int layerIt = 0; layerIt <= lastLayer; layerIt++)
+	for (int layerIt = 0; layerIt < this->layers.size(); layerIt++)
 		//Première à la dernière couche
 	{
 		/*Détermine les thetas max et min d'une couche*/
-		for (int neuroneIt = 0;
-			neuroneIt < this->layers[layerIt].GetNeurones()->size(); neuroneIt++)
+		for ( int neuroneIt = 0;
+			  neuroneIt < this->layers[layerIt].GetNeurones()->size(); neuroneIt++)
 		{
 			thetaTemp = (*(this->layers[layerIt].GetNeurones()))[neuroneIt].GetTheta();
-			if (neuroneIt > 0)
+			
+			if( neuroneIt == 0 && layerIt == 0 )
+			{
+				thetaMax = thetaTemp;
+				thetaMin = thetaTemp;
+			}
+			else
 			{
 				if (thetaTemp > thetaMax)
 				{
@@ -920,11 +927,6 @@ void NeuralNetwork::NormaliseThetas(FileInfo trainFile, string activFct, int opT
 				{
 					thetaMin = thetaTemp;
 				}
-			}
-			else
-			{
-				thetaMin = thetaTemp;
-				thetaMax = thetaTemp;
 			}
 		}
 		/***********************************************/
@@ -966,7 +968,10 @@ bool NeuralNetwork::CrossValidation( vector<FileInfo> vcFiles, string activFct,
 	}
 	this->vcErrPercent = this->vcAccErr / vcFiles.size();
 	if( this->vcErrPercent < errorMargin )
+	{
+		cout << "Validation croisee OK, % erreur = " << this->vcErrPercent << endl;
 		return EXIT_SUCCESS;
+	}
 	else
 		return EXIT_FAILURE;
 }
@@ -1090,7 +1095,8 @@ bool NeuralNetwork::Test( vector<FileInfo> testFiles, string activFct )
 		this->SaveTestResult();
 	}
 	this->testErrPercent = this->testAccErr / testFiles.size();
-	cout << "Test terminee" << endl;
+
+	cout << "Test terminee, % erreur = " << this->testErrPercent << endl;
 	return EXIT_SUCCESS;
 
 }

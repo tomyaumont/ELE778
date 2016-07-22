@@ -182,7 +182,7 @@ public:
 
 	//L'entrainement est arrete par le delai ou la validation croisee
 	bool Train( vector<FileInfo> inputs, vector<FileInfo> trainFiles, int learnDelay,
-				double errorMargin, string activFct, int nbEpoch );
+				double errorMargin, string activFct, int nbEpoch, int normTheta );
 	bool Test( vector<FileInfo> trainFiles, string activFct );
 
 	void UpdateErrorAcc( char fileNum, int opType );
