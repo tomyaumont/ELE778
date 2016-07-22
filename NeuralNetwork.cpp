@@ -82,7 +82,7 @@ void Neurone::SetActivation( double val )
 *					Inputs est soit l'entree du reseau, soit l'activation de la couche
 *					precedente.
 -------------------------------------------------------------------------------------*/
-void Neurone::CalcData( vector<double> inputs )
+void Neurone::CalcData( vector<double> inputs, int opType )
 {
 	double newData = 0;
 
@@ -90,7 +90,74 @@ void Neurone::CalcData( vector<double> inputs )
 	{
 		newData += inputs[neuroneIt] * this->weights[neuroneIt];
 	}
-	this->data = newData + this->GetTheta();
+	newData += this->theta;
+
+	switch( opType )
+	{
+	case 0:
+		this->data = newData + this->GetTheta();
+		break;
+	case 1:
+		this->dataVC = newData + this->GetTheta();
+		break;
+	case 2:
+		this->dataTest = newData + this->GetTheta();
+		break;
+	}
+	
+}
+/*-------------------------------------------------------------------------------------
+*	Nom			:	CalcDelta
+*	Écris par	:	Xavier Mercure-Gagnon
+*
+*	Description	:	Calcul la valeur Delta d'un neurone à partir du taux d'apprentissage,
+*					de la données activées et de la fonction d'activation dérivée.
+*					le resultat attendu determine l'erreur du neurone
+-------------------------------------------------------------------------------------*/
+void Neurone::CalcDelta( bool isLastLayer, string activFct,
+	vector<double> nextLayerDeltas,
+	vector<Neurone> nextLayerNeurones, int opType, bool desiredOut )
+{
+	if ( isLastLayer )
+	{
+		switch( opType )
+		{
+		case OP_TRAIN:
+			this->delta = (desiredOut - this->activation) *
+								this->CalcActivationDerivee( this->data, activFct );
+			break;
+		case OP_VC:
+			this->deltaVC = (desiredOut - this->activationVC) *
+								this->CalcActivationDerivee( this->dataVC, activFct );
+			break;
+		case OP_TEST:
+			this->deltaTest = (desiredOut - this->activationTest) *
+								this->CalcActivationDerivee(this->dataTest, activFct );
+			break;
+		}
+	}
+	else
+	{
+		double totalDelta = 0.0;
+
+		for ( int neurIt = 0; neurIt < nextLayerDeltas.size(); neurIt++ )
+		{
+			totalDelta += nextLayerDeltas[neurIt] * nextLayerNeurones[neurIt].
+				GetWeights()[this->id.rang];
+		}
+		switch( opType )
+		{
+		case OP_TRAIN:
+			this->delta = totalDelta * (this->CalcActivationDerivee(this->data, activFct));
+			break;
+		case OP_VC:
+			this->deltaVC = totalDelta * (this->CalcActivationDerivee(this->dataVC, activFct));
+			break;
+		case OP_TEST:
+			this->deltaTest = totalDelta * (this->CalcActivationDerivee(this->dataTest, activFct));
+			break;
+		}
+	}
 }
 /*-------------------------------------------------------------------------------------
 *	Nom			:	GetActivation
@@ -99,13 +166,63 @@ void Neurone::CalcData( vector<double> inputs )
 *	Description	:	Calcul l'activation du neurone en utilisant la fonction recu en
 *					parametre et l'assigne au champs activation du neurone
 -------------------------------------------------------------------------------------*/
-void Neurone::CalcActivation( string activationFct )
+void Neurone::CalcActivation( string activationFct, int opType )
 {
 	if( !strcmp( activationFct.c_str(), "SIGMOIDE") )
-		this->activation = ( 1 / ( 1 + exp(this->data) ) );
-
+	{
+		switch( opType )
+		{
+		case OP_TRAIN:
+			this->activation = ( 1 / ( 1 + exp(-this->data) ) );
+			break;
+		case OP_VC:
+			this->activationVC = ( 1 / ( 1 + exp(-this->data) ) );
+			break;
+		case OP_TEST:
+			this->activationTest = ( 1 / ( 1 + exp(-this->data) ) );
+			break;
+		}
+	}
+	else if( !strcmp(activationFct.c_str(), "TANH") )
+	{
+		switch( opType )
+		{
+		case OP_TRAIN:
+			this->activation = tanh( this->data );
+			break;
+		case OP_VC:
+			this->activationVC = tanh( this->data );
+			break;
+		case OP_TEST:
+			this->activationTest = tanh( this->data );
+			break;
+		}
+	}
 	else
 		cout << "Fonction d'activation invalide! Verifier config.ini..." << endl;
+}
+/*-------------------------------------------------------------------------------------
+*	Nom			:	CalcActivationDerivee
+*	Écris par	:	xavier Mercure-Gagnon
+*
+*	Description	:	Calcul la dérivee de l'activation du neurone en utilisant la fonction
+*					recu en parametre et l'assigne au champs activation du neurone
+-------------------------------------------------------------------------------------*/
+double Neurone::CalcActivationDerivee( double data, string activationFct )
+{
+	if( !strcmp(activationFct.c_str(), "SIGMOIDE") )
+	{
+		//double lnEuler = log(exp(1.0));
+		this->activationDerivee = (1.0 / (4.0 * pow(cosh((this->data) / 2.0), 2.0)));
+		return this->activationDerivee;
+	}
+	else if( !strcmp(activationFct.c_str(), "TANH") )
+	{
+		this->activationDerivee = (1.0 / ( pow(cosh( this->data ), 2.0) ));
+	}
+	else
+		cout << "Fonction d'activation invalide! Verifier config.ini..." << endl;
+	return ERROR;
 }
 /*-------------------------------------------------------------------------------------
 *	Nom			:	UpdateDeltaW
@@ -113,9 +230,14 @@ void Neurone::CalcActivation( string activationFct )
 *
 *	Description	:	Destructeur de la classe Neurone
 -------------------------------------------------------------------------------------*/
-void Neurone::UpdateDeltaW( int val, vector<Neurone> inputs )
+void Neurone::UpdateWeigts( int alpha, vector<double> inputs )
 {
-	//this->delatW = this->alpha * this->delta * input;
+	double alphaXdelta = this->alpha * this->delta;
+	for( int inIt = 0; inIt < inputs.size(); inIt++ )
+	{
+		this->delatW[inIt] = alphaXdelta * inputs[inIt];
+		this->weights[inIt] = inputs[inIt] + this->delatW[inIt];
+	}
 }
 /*-------------------------------------------------------------------------------------
 *	Nom			:	SetTag
@@ -174,8 +296,18 @@ double Neurone::GetTheta( void )
 *
 *	Description	:	Recupere la valeur de l'erreur (delta)
 -------------------------------------------------------------------------------------*/
-double Neurone::GetDelta( void )
+double Neurone::GetDelta( int opType )
 {
+	switch( opType )
+	{
+	case OP_TRAIN:
+		return this->delta;
+	case OP_VC:
+		return this->deltaVC;
+	case OP_TEST:
+		return this->deltaTest;
+	}
+
 	return this->delta;
 }
 /*-------------------------------------------------------------------------------------
@@ -214,9 +346,17 @@ vector<double> Neurone::GetWeights( void )
 *
 *	Description	:	Recupere la valeur de l'activation du neurone
 -------------------------------------------------------------------------------------*/
-double Neurone::GetActivation( void )
+double Neurone::GetActivation( int opType )
 {
-	return this->activation;
+	switch( opType )
+	{
+	case OP_TRAIN:
+		return this->activation;
+	case OP_VC:
+		return this->activationVC;
+	case OP_TEST:
+		return this->activationTest;
+	}
 }
 /*************************************************************************************/
 /*							Fonctions de la classe Layer							 */
@@ -312,9 +452,15 @@ bool Layer::RmvNeurone( PosID_s ID )
 *
 *	Description	:	Initialise la grandeur du vecteur d'activiation
 -------------------------------------------------------------------------------------*/
-void Layer::InitActivations( int nbNeuronesInLayer )
+void Layer::InitLayer( int nbNeuronesInLayer )
 {
 	this->activations.resize( nbNeuronesInLayer );
+	this->activationsVC.resize( nbNeuronesInLayer );
+	this->activationsTest.resize( nbNeuronesInLayer );
+
+	this->deltas.resize( nbNeuronesInLayer );
+	this->deltasVC.resize( nbNeuronesInLayer );
+	this->deltasTest.resize( nbNeuronesInLayer );
 }
 /*-------------------------------------------------------------------------------------
 *	Nom			:	SetActiVector
@@ -323,11 +469,52 @@ void Layer::InitActivations( int nbNeuronesInLayer )
 *	Description	:	Cree un vecteur contenant la valeur d'activation de chaque neurone
 *					de la couche
 -------------------------------------------------------------------------------------*/
-void Layer::SetActivations( void )
+void Layer::SetActivations( int opType )
 {
 	for( int neuroneIt = 0; neuroneIt < this->neurones.size(); neuroneIt++ )
 	{
-		this->activations[neuroneIt] =  this->neurones[neuroneIt].GetActivation();
+		switch( opType )
+		{
+		case OP_TRAIN:
+			this->activations[neuroneIt] =
+									this->neurones[neuroneIt].GetActivation( opType );
+			break;
+		case OP_VC:
+			this->activationsVC[neuroneIt] =
+									this->neurones[neuroneIt].GetActivation( opType );
+			break;
+		case OP_TEST:
+			this->activationsTest[neuroneIt] = 
+									this->neurones[neuroneIt].GetActivation( opType );
+			break;
+		}
+	}
+}
+/*-------------------------------------------------------------------------------------
+*	Nom			:	SetDeltas
+*	Écris par	:	Xavier Mercure-Gagnon
+*
+*	Description	:	Cree un vecteur contenant le delta de chaque neurone de la couche
+-------------------------------------------------------------------------------------*/
+void Layer::SetDeltas( int opType )
+{
+	for (int neuroneIt = 0; neuroneIt < this->neurones.size(); neuroneIt++)
+	{
+		switch( opType )
+		{
+		case OP_TRAIN:
+			this->deltas[neuroneIt] =
+									this->neurones[neuroneIt].GetDelta( opType );
+			break;
+		case OP_VC:
+			this->deltasVC[neuroneIt] =
+									this->neurones[neuroneIt].GetDelta( opType );
+			break;
+		case OP_TEST:
+			this->deltasTest[neuroneIt] = 
+									this->neurones[neuroneIt].GetDelta( opType );
+			break;
+		}
 	}
 }
 /*-------------------------------------------------------------------------------------
@@ -336,9 +523,9 @@ void Layer::SetActivations( void )
 *
 *	Description	:	Recupere le vecteur de neurone de cette couche
 -------------------------------------------------------------------------------------*/
-vector<Neurone> Layer::GetNeurones( void )
+vector<Neurone>* Layer::GetNeurones( void )
 {
-	return this->neurones;
+	return &this->neurones;
 }
 /*-------------------------------------------------------------------------------------
 *	Nom			:	GetActiVector
@@ -346,9 +533,36 @@ vector<Neurone> Layer::GetNeurones( void )
 *
 *	Description	:	Recupere le vecteur d'activation de la couche
 -------------------------------------------------------------------------------------*/
-vector<double> Layer::GetActivations( void )
+vector<double> Layer::GetActivations( int opType )
 {
-	return this->activations;
+	switch( opType )
+	{
+	case OP_TRAIN:
+		return this->activations;
+	case OP_VC:
+		return this->activationsVC;
+	case OP_TEST:
+		return this->activationsTest;
+	}
+}
+/*-------------------------------------------------------------------------------------
+*	Nom			:	GetDeltas
+*	Écris par	:	Xavier Mercure-Gagnon
+*
+*	Description	:	Recupere le vecteur de deltas de la couche
+-------------------------------------------------------------------------------------*/
+vector<double> Layer::GetDeltas( int opType )
+{
+	switch( opType )
+	{
+	case OP_TRAIN:
+		return this->deltas;
+	case OP_VC:
+		return this->deltasVC;
+	case OP_TEST:
+		return this->deltasTest;
+	}
+	
 }
 /*-------------------------------------------------------------------------------------
 *	Nom			:	GetNeuronesSize
@@ -377,9 +591,9 @@ PosID_s Layer::GetNeuroneXID( int x )
 *	Description	:	Permet de faire le calcul de la donnee du neurone neuroneIt de la
 *					couche
 -------------------------------------------------------------------------------------*/
-void Layer::CalcNeuroneXData( int neuroneIt, vector<double> bestData )
+void Layer::CalcNeuroneXData( int neuroneIt, vector<double> bestData, int opType )
 {
-	this->neurones[neuroneIt].CalcData( bestData );
+	this->neurones[neuroneIt].CalcData( bestData, opType );
 }
 /*-------------------------------------------------------------------------------------
 *	Nom			:	CalcNeuroneXActivation
@@ -388,9 +602,9 @@ void Layer::CalcNeuroneXData( int neuroneIt, vector<double> bestData )
 *	Description	:	Permet de faire le calcul de l'activation du neurone 'neuroneIt' de
 *					la couche avec le type de fonction defini dans 'function'
 -------------------------------------------------------------------------------------*/
-void Layer::CalcNeuroneXActivation( int neuroneIt, string function )
+void Layer::CalcNeuroneXActivation( int neuroneIt, string function, int opType )
 {
-	this->neurones[neuroneIt].CalcActivation( function );
+	this->neurones[neuroneIt].CalcActivation( function, opType );
 }
 /*************************************************************************************/
 /*						Fonctions de la classe NeuralNetwork						 */
@@ -401,7 +615,8 @@ void Layer::CalcNeuroneXActivation( int neuroneIt, string function )
 *
 *	Description	:	Constructeur de la classe NeuralNetwork
 -------------------------------------------------------------------------------------*/
-NeuralNetwork::NeuralNetwork( void ) : layers(0)
+NeuralNetwork::NeuralNetwork( void ) : layers(0), trainAccErr(0), vcAccErr(0),
+																		testAccErr(0)
 {
 	this->layers.resize(0);
 	this->layers.shrink_to_fit();
@@ -425,15 +640,19 @@ NeuralNetwork::~NeuralNetwork()
 -------------------------------------------------------------------------------------*/
 void NeuralNetwork::InitNetwork( ConfigFile* config )
 {
+	
+	cout << "Initialisation du reseau de neurones" << endl;
+
 	// Assigne le nombre d'input =  nombre de bestData * 12 donnees par data
 	this->nbInput = config->GetNbBestData() * NB_INPUT_PER_DATA;
-	this->learnRate = config->GetLearnRate();
+	this->alpha = config->GetLearnRate();
 
 	this->InitLayers(config->GetNbNeuroneIn(), config->GetNbHiddenLayers(),
 		config->GetNbNeuroneHiddenLayers(), config->GetNbNeuroneOut());
 
 	this->InitWeight( config->GetInitWeightMin(), config->GetInitWeightMax() );
-
+	
+	cout << "Initialisation terminee" << endl;
 }
 /*-------------------------------------------------------------------------------------
 *	Nom			:	Initneurones
@@ -477,7 +696,7 @@ void NeuralNetwork::InitLayers(int nbNeuronesIn, int nbHiddenLayers,
 			}
 			this->layers.push_back(tmpLayer);
 		}
-		this->layers[i].InitActivations( j );
+		this->layers[i].InitLayer( j );
 	}
 }
 /*-------------------------------------------------------------------------------------
@@ -489,37 +708,49 @@ void NeuralNetwork::InitLayers(int nbNeuronesIn, int nbHiddenLayers,
 *					Termine la fonction quand le delai learnDelay est atteint ou que
 *					la validation croisee est satisfaisante.
 -------------------------------------------------------------------------------------*/
-bool NeuralNetwork::Train( vector<FileInfo> trainFiles, int learnDelay,
-							double errorMargin, string activFct )
+bool NeuralNetwork::Train( vector<FileInfo> trainFiles, vector<FileInfo> vcFiles,
+							int learnDelay, double errorMargin, string activFct,
+							int nbEpoch )
 {
-	char buffer [2];
-	string learnNumItStr = "";
+	int epochIt = 0;
+	int fileInd;
+	bool cvResult;
+	time_t startTime = time(NULL);
+	time_t endTime;
+	time_t deltaTime;
 
-	// Pour tout les chiffres a apprendre
-	for( int learnNumIt = 0; learnNumIt < 10; learnNumIt++ )
+	cout << "Apprentissage en cours..." << endl;
+
+	do
 	{
+		this->trainAccErr = 0;
 		// Pour tout les fichier d'entrainement
 		for( int fileIt = 0; fileIt < trainFiles.size(); fileIt++ )
 		{
-			/*	Si le fichier d'entrainement correspond au chiffre a apprendre, fait
-				une epoque	*/
-			learnNumItStr = itoa( learnNumIt, buffer, 10 );
-			if( trainFiles[fileIt].GetFileName()[0] == learnNumItStr[0] )
-			{
-				/*	Calcul la donnees et l'activations des neurones etmet a jour le
-					vecteur d'activation des couches.	*/
-				this->PhaseOne( trainFiles[fileIt], activFct );
-				//	Calcul l'erreur (delta) de chaque neurone
-				this->PhaseTwo();
-				//	Calcul et actualise les poids de tout le reseau
-				this->PhaseThree();
-		//		Si la validation croisee est acceptable, quitte la boucle
-		//		d'apprentissage de ce chiffre
-		//		if( this->CrossValidation(vcFiles[fileIt]) );
-		//			break;
-			}
+			// Choisi un indice de fichier au hasard
+			fileInd = rand() % trainFiles.size();
+
+			/*	Calcul la donnees et l'activations des neurones et met a jour le
+				vecteur d'activation des couches.	*/
+			this->PhaseOne( trainFiles[fileInd], activFct, OP_TRAIN );
+			/*	Calcul l'erreur (delta) de chaque neurone et actualualise le compteur
+				d'erreur de l'entrainement	*/
+			this->PhaseTwo( trainFiles[fileInd], activFct, OP_TRAIN );
+			//	Calcul et actualise les poids de tout le reseau
+			this->PhaseThree( trainFiles[fileInd], OP_TRAIN );
+
+			this->trainErrPercent = this->trainAccErr / (fileIt+1);
+			//this->trainErrPercent = this->trainAccErr / trainFiles.size();
 		}
-	}
+
+		// Si la validation croisee retourne 0, il faudra arreter l'apprentissage
+		cvResult = this->CrossValidation(vcFiles, activFct, errorMargin);
+
+		endTime = time(NULL);
+		deltaTime = endTime - startTime;
+	}while((epochIt++ < nbEpoch) && (deltaTime < learnDelay) && cvResult );
+
+	cout << "Apprentissage terminee" << endl;
 	return EXIT_SUCCESS;
 }
 /*-------------------------------------------------------------------------------------
@@ -528,43 +759,99 @@ bool NeuralNetwork::Train( vector<FileInfo> trainFiles, int learnDelay,
 *
 *	Description	:	Calcul la donnee et l'activation de chaque neurone
 -------------------------------------------------------------------------------------*/
-void NeuralNetwork::PhaseOne( FileInfo trainFile, string activFct )
+void NeuralNetwork::PhaseOne( FileInfo file, string activFct, int opType )
 {
+	char fileNum = file.GetFileName()[0];
+	int lastLayer = this->layers.size()-1;
 
 	for( int layerIt = 0; layerIt < this->layers.size(); layerIt++ )
 	{
+		/*	Pour la premiere couche, utilise les donnees provenant du fichier comme
+			entrees.	*/
 		if( layerIt == 0 )
 		{
 			for( int neuroneIt = 0;
-				neuroneIt < this->layers[layerIt].GetNeurones().size(); neuroneIt++ )
+				neuroneIt < this->layers[layerIt].GetNeurones()->size(); neuroneIt++ )
 			{
-				this->layers[layerIt].CalcNeuroneXData( neuroneIt,
-															trainFile.GetBestData() );
-				this->layers[layerIt].CalcNeuroneXActivation( neuroneIt, activFct );
+				this->layers[layerIt].CalcNeuroneXData( neuroneIt, file.GetBestData(),
+																			opType );
+				this->layers[layerIt].CalcNeuroneXActivation( neuroneIt, activFct,
+																			opType );
 			}
 		}
+		// Pour tout les autres couches, utilise l'activation de la couche precedente
 		else
 		{
 			for( int neuroneIt = 0;
 				neuroneIt < this->layers[layerIt].GetNeuronesSize(); neuroneIt++ )
 			{
 				this->layers[layerIt].CalcNeuroneXData( neuroneIt,
-											this->layers[layerIt-1].GetActivations() );
-				this->layers[layerIt].CalcNeuroneXActivation( neuroneIt, activFct );
+										this->layers[layerIt-1].GetActivations(opType),
+											opType);
+				this->layers[layerIt].CalcNeuroneXActivation( neuroneIt, activFct,
+																			opType );
 			}
 		}
-		this->layers[layerIt].SetActivations();
+		this->layers[layerIt].SetActivations( opType );
 	}
+
+	/* Assigne la valeur de sortie en fonction de toutes les activations de la derniere
+	   couche	*/
+	this->SetOut( opType, this->layers[lastLayer].GetActivations(opType) );
+
+	/*	Si le nom du fichier et la sortie trouvee ne correspondent pas, incremente le
+		compteur d'erreur	*/
+	this->UpdateErrorAcc( fileNum, opType );
 }
 /*-------------------------------------------------------------------------------------
 *	Nom			:	PhaseTwo
-*	Écris par	:	Tomy Aumont
+*	Écris par	:	Xavier Mercure-Gagnon
 *
-*	Description	:	Calcul l'erreur (delta) de chaque neurone
+*	Description	:	Calcul l'erreur (delta) de chaque neurone.
 -------------------------------------------------------------------------------------*/
-void NeuralNetwork::PhaseTwo( void )
+void NeuralNetwork::PhaseTwo( FileInfo file, string activFct, int opType )
 {
+	stringstream neurNum;
+	char fileNum = file.GetFileName()[0];
+	bool desiredNeurOut;
+	int lastLayer = this->layers.size()-1;
 
+	//Dernière à la première couche
+	for ( int layerIt = lastLayer; layerIt >= 0; layerIt-- )
+	{
+		for ( int neurIt = 0; neurIt < this->layers[layerIt].GetNeurones()->size();
+																			neurIt++ )
+		{
+			neurNum << neurIt;
+			
+			desiredNeurOut = (fileNum == neurNum.str()[0]) ? 1 : 0;
+
+			/*	Utilise la valeur desiree en sortie ainsi que l'activation du neurone
+				afin de calculer l'erreur de la derniere couche du reseau.
+				PS: les parametre 3 et 4 de la fonction Calcdelta ne sont pas utilises
+				ici		*/
+			if ( layerIt == lastLayer )
+			{
+				(*(this->layers[layerIt].GetNeurones()))[neurIt].CalcDelta(
+							(layerIt == lastLayer) ? true : false, activFct,
+							this->layers[layerIt].GetDeltas( opType ),
+							*(this->layers[layerIt].GetNeurones()), desiredNeurOut );
+			}
+			/*	Utilise l'erreur des neurones de la couche suivante ainsi que les
+				poids qui propage ces erreurs pour calculer l'erreur des neurones des
+				autre couches.	*/
+			else
+			{
+				(*(this->layers[layerIt].GetNeurones()))[neurIt].CalcDelta(
+					(layerIt == lastLayer) ? true : false, activFct,
+					this->layers[layerIt+1].GetDeltas( opType),
+					*(this->layers[layerIt+1].GetNeurones()), desiredNeurOut );
+			}
+			neurNum.str(string()); // Efface le contenu de la string temporaire
+		}
+		// Assigne des donnees au vecteur d'erreur dans l'entite layer
+		this->layers[layerIt].SetDeltas( opType );
+	}
 }
 /*-------------------------------------------------------------------------------------
 *	Nom			:	PhaseThree
@@ -573,17 +860,25 @@ void NeuralNetwork::PhaseTwo( void )
 *	Description	:	Calcul et actualise les poids de tout le reseau en fonction de
 *					l'erreur (delta) trouvee durant le phase 2
 -------------------------------------------------------------------------------------*/
-void NeuralNetwork::PhaseThree( void )
+void NeuralNetwork::PhaseThree( FileInfo file, int opType )
 {
 	for( int layIt = 0; layIt < this->layers.size(); layIt++ )
 	{
 		for( int neuIt = 0; neuIt < this->layers[layIt].GetNeuronesSize(); neuIt++ )
 		{
 			for( int wIt = 0;
-				 wIt < this->layers[layIt].GetNeurones()[neuIt].GetWeights().size();
+				 wIt<(*(this->layers[layIt].GetNeurones()))[neuIt].GetWeights().size();
 				 wIt++ )
 			{
-				this->layers[layIt].GetNeurones()[neuIt].UpdateDeltaW( wIt, this->layers[layIt-1].GetNeurones() );
+				/* Si ce n'est pas la premiere couche, utilise les activations de la
+					de la couche precedente	*/
+				if( layIt )
+					(*(this->layers[layIt].GetNeurones()))[neuIt].UpdateWeigts(
+							this->alpha, this->layers[layIt-1].GetActivations(opType));
+				// Sinon utilise les entrees du reseau
+				else
+					(*(this->layers[layIt].GetNeurones()))[neuIt].UpdateWeigts(
+													this->alpha, file.GetBestData() );
 			}
 		}
 	}
@@ -592,11 +887,67 @@ void NeuralNetwork::PhaseThree( void )
 *	Nom			:	CrossValidation
 *	Écris par	:	Tomy Aumont
 *
-*	Description	:	Effectue la validation croisee
+*	Description	:	Effectue la validation croisee. errorMargin est la difference 
+*					maximale a avoir pour retourner succes
 -------------------------------------------------------------------------------------*/
-void NeuralNetwork::CrossValidation( vector<FileInfo> vcFiles )
+bool NeuralNetwork::CrossValidation( vector<FileInfo> vcFiles, string activFct,
+										double errorMargin )
 {
+	int fileIndex;
 
+	this->vcAccErr = 0;
+	for( int fileIt = 0; fileIt < vcFiles.size(); fileIt++)
+	{
+		fileIndex = rand() % vcFiles.size();
+
+		/*	Calcul la donnees et l'activations des neurones et met a jour le vecteur
+			d'activation des couches.	*/
+		this->PhaseOne( vcFiles[fileIndex], activFct, OP_VC );
+		//	Calcul l'erreur (delta) de chaque neurone
+		//this->PhaseTwo( vcFiles[fileIndex], activFct, OP_VC );
+		////	Calcul et actualise les poids de tout le reseau
+		//this->PhaseThree( vcFiles[fileIndex], OP_VC );
+	}
+	this->vcErrPercent = this->vcAccErr / vcFiles.size();
+	if( this->vcErrPercent < errorMargin )
+		return EXIT_SUCCESS;
+	else
+		return EXIT_FAILURE;
+}
+/*-------------------------------------------------------------------------------------
+*	Nom			:	UpdateErrorAcc
+*	Écris par	:	Tomy Aumont
+*
+*	Description	:	Met a jour le nombre d'erreur de reconnaissance de chiffre selon
+*					l'operation en cours (apprentissage, validation croisee, test)
+*					La soustraction de 48 a la variable fileNum est l'equivalent d'une
+*					conversion de char en sa valeur int par exemple le char '6' en
+*					l'entier 6.
+-------------------------------------------------------------------------------------*/
+void NeuralNetwork::UpdateErrorAcc( char fileNum, int opType )
+{
+	switch( opType )
+	{
+	case OP_TRAIN:
+		{
+			if( (fileNum-48) != this->out )
+				this->IncOutError( opType );
+			break;
+		}
+	case OP_VC:
+		{
+		if( (fileNum-48) != this->outVC )
+			this->IncOutError( opType );
+		break;
+		}
+	case OP_TEST:
+		{
+		if( (fileNum-48) != this->outTest )
+			this->IncOutError( opType );
+		break;
+		}
+	}
+	
 }
 /*-------------------------------------------------------------------------------------
 *	Nom			:	SetNbInput
@@ -662,9 +1013,195 @@ bool NeuralNetwork::IDExist( PosID_s pos )
 *	Écris par	:	Tomy Aumont
 *
 *	Description	:	Retourne 0 si le reseau de neurones a bien apprit les donnees
-*					sinon, s'il n'a pas reconnu les donnees retourn 1
+*					sinon, s'il n'a pas reconnu les donnees retourne 1
 -------------------------------------------------------------------------------------*/
-bool NeuralNetwork::Test(  )
-{
+bool NeuralNetwork::Test( vector<FileInfo> testFiles, string activFct )
+{	
+	cout << "Test en cours..." << endl;
+
+	int fileIndex;
+
+	this->testAccErr = 0;
+	// Pour tout les fichier d'entrainement
+	for( int fileIt = 0; fileIt < testFiles.size(); fileIt++ )
+	{
+		fileIndex = rand() % testFiles.size();
+
+		/*	Calcul la donnees et l'activations des neurones et met a jour le
+			vecteur d'activation des couches.	*/
+		this->PhaseOne( testFiles[fileIt], activFct, OP_TEST );
+		this->SetOut( OP_TEST, this->layers[this->layers.size()-1].GetActivations(OP_TEST) );
+		this->SaveTestResult();
+	}
+	this->testErrPercent = this->testAccErr / testFiles.size();
+	cout << "Test terminee" << endl;
 	return EXIT_SUCCESS;
+
+}
+/*-------------------------------------------------------------------------------------
+*	Nom			:	FindRandomFile
+*	Écris par	:	Tomy Aumont
+*
+*	Description	:	Retourne l'indice du fichier trouvee aleatoirement correspondant
+*					au chiffre designe par 'x' dans vcFiles
+-------------------------------------------------------------------------------------*/
+//int NeuralNetwork::FindRandomFile( vector<FileInfo> vcFiles )
+//{
+//	vector<int> goodIndex;
+//
+//	for( int fileIt = 0; fileIt < vcFiles.size(); fileIt++ )
+//	{
+//		if( vcFiles[fileIt].GetFileName()[0] == x )
+//			goodIndex.push_back( fileIt );
+//	}
+//	
+//	int randomIndex = rand() % goodIndex.size();
+//
+//	return goodIndex[randomIndex];
+//
+//}
+/*-------------------------------------------------------------------------------------
+*	Nom			:	SetOut
+*	Écris par	:	Tomy Aumont
+*
+*	Description	:	Retourne la valeur de l'index ou se trouve la plus grande valeur
+*					du vecteur.
+-------------------------------------------------------------------------------------*/
+void NeuralNetwork::SetOut( int opType, vector<double> activ )
+{
+	switch( opType )
+	{
+	case OP_TRAIN:
+		this->out = distance( activ.begin(), max_element(activ.begin(), activ.end()));
+		break;
+	case OP_VC:
+		this->outVC = distance( activ.begin(), max_element(activ.begin(), activ.end()));
+		break;
+	case OP_TEST:
+		this->outTest = distance( activ.begin(), max_element(activ.begin(), activ.end()));
+		break;
+	}	
+}
+/*-------------------------------------------------------------------------------------
+*	Nom			:	IncOutError
+*	Écris par	:	Tomy Aumont
+*
+*	Description	:	Incrmente l'erreur du type d'operation recu en parametre
+-------------------------------------------------------------------------------------*/
+void NeuralNetwork::IncOutError( int opType )
+{
+	switch( opType )
+	{
+	case OP_TRAIN:
+		this->trainAccErr++;
+		break;
+	case OP_VC:
+		this->vcAccErr++;
+		break;
+	case OP_TEST:
+		this->testAccErr++;
+		break;
+	}
+}
+/*-------------------------------------------------------------------------------------
+*	Nom			:	SaveTrainParam
+*	Écris par	:	Tomy Aumont
+*
+*	Description	:	Sauvegarde les parametres finaux d'apprentissage
+-------------------------------------------------------------------------------------*/
+bool NeuralNetwork::SaveTrainParam( ConfigFile settings )
+{
+	string buff;
+	ofstream ofs;
+
+	if( this->AskSaveTrain() )
+	{
+		cout << "Donnez un nom au fichier de parametres ( avec extension ) : ";
+		cin >> buff;
+
+		ofs.open(buff, ios::out);
+		if( ofs.is_open() )
+		{
+			this->WriteTrainParam( settings, &ofs );
+			ofs.close();
+		}
+		else
+		{
+			stringstream ss;
+			ss << "Error saving parameters file named : " << buff;
+			PrintDebugMessage( ss.str() );
+			return EXIT_FAILURE;
+		}
+
+	}
+}
+/*-------------------------------------------------------------------------------------
+*	Nom			:	AskSaveTrain
+*	Écris par	:	Tomy Aumont
+*
+*	Description	:	Demande a l'usage s'il veut sauvegarder les parametre
+*					d'apprentissage
+-------------------------------------------------------------------------------------*/
+bool NeuralNetwork::AskSaveTrain( void )
+{
+	char answer;
+
+	cout << "Voulez-vous sauvegarder les parametres d'apprentissage? ( O / N ) : ";
+	getchar();
+	answer = toupper( getchar() );
+
+	while( answer != 'O' && answer != 'N' )
+	{
+		getchar(); // Récupere la touche "ENTRÉ"
+		cout << "\tVeuillez entrer 'O' ou 'N' : ";
+		answer = toupper( getchar() );
+	}
+
+	if( 'O' == answer )
+		return true;
+	else if( 'N' == answer )
+		return false;
+}
+/*-------------------------------------------------------------------------------------
+*	Nom			:	WriteTrainParam
+*	Écris par	:	Tomy Aumont
+*
+*	Description	:	Ecrit le fichier contenant les parametre d'apprentissage
+-------------------------------------------------------------------------------------*/
+void NeuralNetwork::WriteTrainParam( ConfigFile settings, ofstream* ofs )
+{
+	cout << "Sauvegarde des parametre d'apprentissage en cours..." << endl;
+	//	Ecrit les parametre utiliser dans ce reseau de neurone ( 1ere ligne )
+	*ofs << settings.GetNbBestData()*NB_INPUT_PER_DATA << " " <<
+			settings.GetNbNeuroneIn() << " " << settings.GetNbHiddenLayers() << " " <<
+			settings.GetNbNeuroneHiddenLayers() << " " << settings.GetNbNeuroneOut() <<
+			" " << settings.GetLearnRate() << " " << settings.GetErrorMargin() << " "
+			<< settings.GetActivationFct() << endl;
+
+	//	Ecrit les poids de tous les neurones de chaque couche, un neurone par ligne
+	for( int lyrIt = 0; lyrIt < this->layers.size(); lyrIt++ )
+	{
+		for( int neurIt = 0; neurIt < this->layers[lyrIt].GetNeuronesSize(); neurIt++ )
+		{
+			for( int wIt = 0;
+				 wIt < (*(this->layers[lyrIt].GetNeurones()))[neurIt].GetWeights().size();
+				 wIt++ )
+			{
+				if( wIt != 0 )
+					*ofs << " ";
+				*ofs << (*(this->layers[lyrIt].GetNeurones()))[neurIt].GetWeights()[wIt];
+			}
+			*ofs << endl;
+		}
+	}
+}
+/*-------------------------------------------------------------------------------------
+*	Nom			:	SaveTestResult
+*	Écris par	:	Tomy Aumont
+*
+*	Description	:	Sauvegarde les resultat du test dans un fichier.
+-------------------------------------------------------------------------------------*/
+void NeuralNetwork::SaveTestResult( void )
+{
+
 }

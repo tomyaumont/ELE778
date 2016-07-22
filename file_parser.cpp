@@ -132,6 +132,12 @@ bool ConfigFile::ReadConfig()
 				size_t info_pos = line.find("=") +2;
 				this->learnRate = stod(line.substr( info_pos ).c_str());
 			}
+			// Recupere le nombre maximal d'epoque a faire lors de l'apprentissage
+			else if( string::npos != line.find("nbEpoch") )
+			{
+				size_t info_pos = line.find("=") +2;
+				this->nbEpoch = atoi(line.substr( info_pos ).c_str());
+			}
 		}
 		return EXIT_SUCCESS;
 	}
@@ -185,6 +191,7 @@ void ConfigFile::PrintConfig( void )
 	cout << "\tD. Initialisation des poids minimale \t: " << this->initWeightMin << endl;
 	cout << "\tE. Initialisation des poids maximale \t: " << this->initWeightMax << endl;
 	cout << "\tF. Taux d'apprentissage \t\t: " << this->learnRate << endl;
+	cout << "\tG. Nombre d'epoque d'apprentissage \t: " << this->nbEpoch << endl;
 
 	PrintDashLine();
 }
@@ -242,6 +249,7 @@ void ConfigFile::ModifyConfig( void )
 			"\tD. Initialisation des poids minimale" << endl <<
 			"\tE. Initialisation des poids maximale" << endl <<
 			"\tF. Taux d'apprentissage" << endl <<
+			"\tG. Nombre d'epoque d'apprentissage" << endl <<
 			"\t0. Terminer la modification" << endl <<
 			"Votre choix : ";
 
@@ -273,7 +281,7 @@ void ConfigFile::ModifyConfig( void )
 				break;
 			} 
 		case '4': case '6': case '7': case '8': case '9': case 'B': case 'C': case 'D':
-		case 'E': case 'F':
+		case 'E': case 'F': case 'G':
 			{
 				// Pour le nombre de données triées à considérer par fichier
 				cout << "Entrez le nombre desire : ";
@@ -299,6 +307,8 @@ void ConfigFile::ModifyConfig( void )
 					this->initWeightMax = stod(tmpStr.c_str());
 				else if( parametre == 'F' )
 					this->learnRate = stod(tmpStr.c_str());
+				else if( parametre == 'G' )
+					this->nbEpoch = atoi(tmpStr.c_str());
 
 				cout << endl << "Quel parametre voulez-vous modifier? : ";
 				break;
@@ -327,9 +337,9 @@ void ConfigFile::ModifyConfig( void )
 				cout << "Entrez la fonction desire, soit sigmoide ou ... : ";
 				cin >> tmpStr;
 				transform( tmpStr.begin(), tmpStr.end(), tmpStr.begin(), toupper );
-				while( tmpStr != "SIGMOIDE" && tmpStr != "...")
+				while( tmpStr != "SIGMOIDE" && tmpStr != "TANH")
 				{
-					cout << "\tVeuillez entrer SIGMOIDE ou ... : ";
+					cout << "\tVeuillez entrer SIGMOIDE ou TANH : ";
 					cin >> tmpStr;
 					transform( tmpStr.begin(), tmpStr.end(), tmpStr.begin(), toupper );
 				}
@@ -375,7 +385,8 @@ void ConfigFile::WriteConfig( void )
 				"errorMargin = " << this->errorMargin << endl <<
 				"initWeightMin = " << this->initWeightMin << endl <<
 				"initWeightMax = " << this->initWeightMax << endl <<
-				"learnRate = " << this->learnRate;
+				"learnRate = " << this->learnRate << endl <<
+				"nbEpoch = " << this->nbEpoch;
 
 	ofsConfig.close();
 }
@@ -536,6 +547,16 @@ void ConfigFile::SetLearnRate( double val )
 	this->learnRate = val;
 }
 /*-------------------------------------------------------------------------------------
+*	Nom			:	SetNbEpoch
+*	Écris par	:	Tomy Aumont
+*
+*	Description	:	Assigne le nombre d'epoque maximal a faire lors de l'apprentissage
+*------------------------------------------------------------------------------------*/
+void ConfigFile::SetNbEpoch( int val )
+{
+	this->nbEpoch = val;
+}
+/*-------------------------------------------------------------------------------------
 *	Nom			:	getInfoTestPath
 *	Écris par	:	Tomy Aumont
 *
@@ -688,6 +709,16 @@ double ConfigFile::GetInitWeightMax( void )
 double ConfigFile::GetLearnRate( void )
 {
 	return this->learnRate;
+}
+/*-------------------------------------------------------------------------------------
+*	Nom			:	GetNbEpoch
+*	Écris par	:	Tomy Aumont
+*
+*	Description	:	Recupere le nombre d,epoque d'apprentissage maximal a faire
+*------------------------------------------------------------------------------------*/
+int ConfigFile::GetNbEpoch( void )
+{
+	return this->nbEpoch;
 }
 /*************************************************************************************/
 /*							Fonctions de la classe Pathfile							 */
@@ -1321,6 +1352,7 @@ bool InputFiles::SaveDataToTxt( void )
 	PrintDebugMessage( "Saving best data..." );
 
 	this->CreateDataBaseArchitecture();
+	this->MoveOldList();
 
 	// Sauvegarde chaque structure de fichier traitee dans un .txt
 	for ( int i=0; i < this->filesList.size(); i++ )
@@ -1337,6 +1369,20 @@ bool InputFiles::SaveDataToTxt( void )
 	}
 	PrintDebugMessage( DBG_MSG_COMPLETE );
 	return EXIT_SUCCESS;
+}
+/*-------------------------------------------------------------------------------------
+*	Nom			:	MoveOldList
+*	Écris par	:	Tomy Aumont
+*
+*	Description	:	Deplace les liste de fichier vers le repertoire old_list qui va
+*					garder en memoire seulement la derniere liste cree.
+-------------------------------------------------------------------------------------*/
+void InputFiles::MoveOldList( void )
+{
+	system( "mkdir old_list 2> null.dump" );
+	system( "move info_train.txt old_list" );
+	system( "move info_test.txt old_list" );
+	system( "move info_vc.txt old_list" );
 }
 /*-------------------------------------------------------------------------------------
 *	Nom			:	LoadSortedFiles
