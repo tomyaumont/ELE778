@@ -20,22 +20,27 @@
 *									ARCHITECTURE ET FICHIERS REQUIS									*
 /***************************************************************************************************/	
 	
-	Dans le répertoire du projet VisualStudio, au même niveau que les fichiers sources, il faut:
+	Il faut que les fichier suivant soit present a cote de l'executable avant d'executer celui-ci:
 	
 		1. Le fichier config.ini
 		2. Le fichier null.dump
 		3. Les fichiers sources et en-têtes suivant: main.cpp
 													 file_parser.cpp
 													 GraphTools.cpp
+													 NeuralNetwork.cpp
 													 file_parser.h
 													 GraphTools.h
+													 NeuralNetwork.h
+													 
 		4. Le répertoire labo2-mlp fournis au début du laboratoire et qui se trouve sur le réseau de
 			l'université au bout du chemin absolu suivant : I:\ELE778\Labo\
 		5. Remplacer les fichiers info_test.txt, info_train.txt et info_vc.txt qui se trouve dans le
-			répertoire labo2-mlp\BaseDonnees et qui est demander de copier au point 4.
+			répertoire labo2-mlp\BaseDonnees, qui est demander de copier au point 4, par ceux fournis
+			avec l'executable de notre programme.
 		6. Remplacer le nom du répertoire C:\Users\user\Documents\Programmation\ELE778\
-			Vocal_Recognition\Vocal_Recognition\labo2-mlp\BaseDonnees\tidigits\txt_dist\validation croisee
-			par C:\Users\user\Documents\Programmation\ELE778\Vocal_Recognition\Vocal_Recognition\
+			Vocal_Recognition\Vocal_Recognition\labo2-mlp\BaseDonnees\tidigits\txt_dist\validation
+			croisee par :
+			C:\Users\user\Documents\Programmation\ELE778\Vocal_Recognition\Vocal_Recognition\
 			labo2-mlp\BaseDonnees\tidigits\txt_dist\vc
 
 /***************************************************************************************************/
@@ -44,18 +49,61 @@
 
 1- Configurer le fichier "config.ini"
 	
-	Ce fichier contient 4 informations qui seront aussi modifiable au démarage de l'application:
+	Ce fichier contient 17 informations qui seront aussi modifiable au démarage de l'application:
 	
-		1. infoTrainPath :	Le chemin relatif vers le fichier contenant les chemins relatifs vers les
-							fichiers d'apprentissage.
+		1. infoTrainPath	:	Le chemin relatif vers le fichier contenant la liste des fichiers
+								d'apprentissage. Ex: labo2-mlp\BaseDonnees\info_train.txt
 		
-		2. infoTestPath :	Le chemin relatif vers le fichier contenant les chemins relatifs vers les
-							fichiers de test.
+		2. infoTestPath		:	Le chemin relatif vers le fichier contenant la liste des fichiers de 
+								test. Ex: labo2-mlp\BaseDonnees\info_test.txt
 			
-		3. infoVCPath :		Le chemin relatif vers le fichier contenant les chemins relatifs vers les
-							fichiers de validation croisée.
+		3. infoVCPath		:	Le chemin relatif vers le fichier contenant la liste des fichiers de
+								validation croisée. Ex: labo2-mlp\BaseDonnees\info_vc.txt
 			
-		4. bestDataCount :	La grosseur de la base de données à générer et/ou utiliser si elle existe.
+		4. nbBestData		:	La grosseur de la base de données à générer et/ou utiliser si elle
+								existe. Si vous modifiez ce parametre, il faut aussi mettre isSorted
+								a 0 afin de cree une nouvelle liste de donnees triees. Ex: 40 pour
+								utiliser 40 donnees par fichier.
+		
+		5. isSorted			:	Determine si l'utilisateur veut utiliser des fichiers de donnees deja
+								triees ou s'il veut en generer des nouveau. S'il veut en utiliser
+								des deja triees, il faut tout de meme configurer le parametre
+								nbBestData en fonction du fichier a charger. De plus, il faut que les
+								fichiers infro_train.txt, info_test.txt et info_vc.txt soient present
+								au meme niveau que l'executable pour fonctionner. Ex : 1 pour charger
+								les fichiers deja triees.
+
+		6. nbNeuroneIn		:	Parametre qui determine le nombre de neurones qui se trouveront sur
+								la premiere couche du reseau de neurone. Ex : 50
+		
+		7. nbHiddenLayers	:	Parametre qui determine le nombre de couches cachees a utiliser.
+								Ex : 1
+		
+		8. nbNeuroneHiddenLayers	:	Parametre qui determine le nombre de neurones par couche
+										cachee. Ex : 20
+										
+		9. nbNeuroneOut		:	Parametre qui indique le nombre de neurones dans la couche de sortie.
+								Ex : 10
+		
+		10. activationFct	:	Parametre qui determine la fonction d'activation a utilisee parmis
+								les deux choix suivants : SIGMOIDE ou TANH
+		
+		11. learnMaxDelay	:	Le delais maximal afin d'arreter l'apprentissage, tout en completant
+								l'epoque en cours. Ce delais est en secondes. Ex : 3600 pour un temps
+								d'apprentissage maximal de 1 heure.
+		
+		12. errorMargin		:	La marge d'erreur acceptable pour que les resultats de la validation
+								croisee permettent l'arret de l'apprentissage.Ex : 0.25 pour arreter
+								l'apprentissage lorsque 25% ou moins d'erreur est trouvee.
+		
+		13. initWeightMin	:	La limite basse utilisee lors de l'initialisation aleatoire des poids
+								Ex : -0.1
+		14. initWeightMax	:	La limite haute utilisee lors de l'initialisation aleatoire des poids
+								Ex : 0.1
+		15. learnRate		:	Le taux d'apprentissage utiliser dans le reseau de neurone
+								Ex : 0.01
+		16. nbEpoch			:	Le nombre d'epoque maximal avant de terminer l'apprentissage, si le
+								delais n'a pas encore ete atteint. Ex : 5
 		
 		NB:	Les chemins relatifs prennent en considération que le programme sera appelé au même
 			niveau que les répertoires "labo2_mlp" et "Sorted_Files".
@@ -65,15 +113,15 @@
 	"man" ou "woman", suivit des initiales de la personne ayant prononcé le mot. Si cette
 	architecture n'est pas déjà présente, il est possible de la copier du réseau de
 	l'université selon le chemin absolut suivant : "I:\ELE778\Labo\". Prendre le répertoire
-	"labo2-mlp" en entier. Il est important que ce répertoire soit copié au même niveau que les
-	fichiers sources du projet.
+	"labo2-mlp" en entier. Il est important que ce répertoire soit copié au même niveau que
+	l'executable du programme.
 
 	Le nombre de données à traiter doit comprendre un nombre naturel non nul pour fonctionner. Les 
 	valeurs 40, 50 et 60 sont à tester dans ce laboratoire, mais d'autres valeurs sont aussi
 	acceptées.
 	
-	NB: Il est possible de changer l'architecture, mais il faut modifier le fichier "config.ini" en
-		considération, ainsi que le contenu des fichier pointés par les paramètres actuels.
+	NB: Il est possible de changer l'architecture, mais il faut modifier les 3 premier parametres du
+		fichier "config.ini", ainsi que le contenu des fichier pointés par ces paramètres.
 	
   	
 2- Exécuter l'application
@@ -81,7 +129,7 @@
 	Il y a deux manières de faire fonctionner l'application:
 	
 		1.	En exécutant l'application à partir du fichier "Vocal_Recognition.exe" ou
-			"Vocal_Recognition_Debug_Msg.exe" dans le même dossier que les fichier requis à la
+			"Vocal_Recognition_Debug_Msg.exe" dans le même dossier que les fichiers requis à la
 			section précédente. Il est important que l'exécutable soit au même niveau que les
 			fichiers décris dans la section "ARCHITECTURE ET FICHIERS REQUIS" de ce document afin
 			d'avoir accès au fichier ressources sans modifier les chemins de données actuels.
@@ -92,9 +140,37 @@
 
 3- Visualiser le prétraitement des données
 
-	Lorsque le programme aura terminé sont exécution, une liste de fichiers sera générée sous le
-	répertoire suivant : Sorted_Files\txt_dist\train\man_woman\initiales\chiffreLettre.txt
-	Chaque fichier texte généré contient les X meilleures données (selon le paramètre bestDataCount)
-	pour chaque fichier lues, basé sur l'énergie statique et dynamique du signal. Ces fichier seront
-	ceux utilisés comme entrés du réseau de neurones.
+	Lorsque le programme aura terminé sont exécution, des fichiers seront générée sous le repertoire
+	suivant : Sorted_Files\txt_dist\train\man_woman\initiales\chiffreLettre.txt. Chaque fichier texte
+	généré contient les X meilleures données (selon le paramètre bestDataCount) pour chaque fichier
+	lues, basé sur l'énergie statique et dynamique du signal. Ces fichier sont utilises comme entres
+	du réseau de neurones.
 	
+	Les listes pointant vers ces fichiers pour les differentes phase du reseau sont generees au meme
+	niveau que l'executable sous les nom suivant : info_train.txt, info_test.txt, info_vc.txt.
+	
+4-	Lorsque le programme demandera si vous voulez sauvegarder les parametres d'apprentissage, si vous
+	n'entrez que le nom d'un fichier, il sera cree au meme niveau que l'executable, sinon il sera
+	cree selon le chemin relatif que vous aurez entre.
+
+/***************************************************************************************************/
+*						FORMAT DE SAUVEGARDE DES PARAMETRES D'APPRENTISSAGE							*
+/***************************************************************************************************/
+
+Le fichier contenant les parametres d'apprentissage contients des informations selon l'ordre suivant:
+	* Chaque parametre separe par une virgule ci-bas est separe par un espace dans le fichier
+
+	1ere ligne	:	nombre de donnees en entree, nombre de neurones de la couche d'entree, nombre de
+					couches cachees, nombre de neurones par couche cachee, nombre de neurone dans la
+					couche de sortie, taux d'apprentissage, erreur acceptable de la validation
+					croisee, la fonction d'activation utilisee
+	2e ligne	:	tout les poids du premier neurone de la premiere couche separe par un espace
+	3e ligne	:	tout les poids du deuxieme neurone de la premiere couche separe par un espace
+					...
+	ie ligne	:	tout les poids du dernier neurone de la derniere couche separe par un espace
+
+
+
+
+
+
