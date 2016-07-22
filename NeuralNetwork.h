@@ -162,6 +162,7 @@ private:
 	void PhaseOne( FileInfo trainFile, string activFct, int opType );
 	void PhaseTwo( FileInfo trainFile, string activFct, int opType );	//Xavier	// Calcul l'erreur (delta) de chaque neurone
 	void PhaseThree( FileInfo trainFile, int opType );	// Calcul et actualise les poids
+	void NormaliseThetas(FileInfo trainFile, string activFct, int opType); //Normalise les thetas, eliminant les extremes
 	bool CrossValidation( vector<FileInfo> vcFiles, string activFct,
 																double errorMargin );
 
