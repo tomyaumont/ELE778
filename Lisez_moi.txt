@@ -1,0 +1,100 @@
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+*																									*
+*	Nom			:	Lisez_moi.txt																	*
+*																									*
+*	Écrit par	:	Tomy Aumont et Xavier Mercure-Gagnon											*
+*																									*
+*	Description	:	Fichier descriptif de l'application "Vocal_Recognition.exe"						*
+*																									*
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+/***************************************************************************************************/
+*								 SPÉCIFICATION DE L'APPLICATION										*
+/***************************************************************************************************/
+
+	L'application a été codé en C++ sur la plateforme de développement Visual Studio 2010, elle a
+	donc été testée sur windows uniquement et la fonctionnalité sur un autre système d'exploitation
+	pourrait s'avérer hasardeuse.
+
+/***************************************************************************************************/
+*									ARCHITECTURE ET FICHIERS REQUIS									*
+/***************************************************************************************************/	
+	
+	Dans le répertoire du projet VisualStudio, au même niveau que les fichiers sources, il faut:
+	
+		1. Le fichier config.ini
+		2. Le fichier null.dump
+		3. Les fichiers sources et en-têtes suivant: main.cpp
+													 file_parser.cpp
+													 GraphTools.cpp
+													 file_parser.h
+													 GraphTools.h
+		4. Le répertoire labo2-mlp fournis au début du laboratoire et qui se trouve sur le réseau de
+			l'université au bout du chemin absolu suivant : I:\ELE778\Labo\
+		5. Remplacer les fichiers info_test.txt, info_train.txt et info_vc.txt qui se trouve dans le
+			répertoire labo2-mlp\BaseDonnees et qui est demander de copier au point 4.
+		6. Remplacer le nom du répertoire C:\Users\user\Documents\Programmation\ELE778\
+			Vocal_Recognition\Vocal_Recognition\labo2-mlp\BaseDonnees\tidigits\txt_dist\validation croisee
+			par C:\Users\user\Documents\Programmation\ELE778\Vocal_Recognition\Vocal_Recognition\
+			labo2-mlp\BaseDonnees\tidigits\txt_dist\vc
+
+/***************************************************************************************************/
+*									MODE D'EMPLOI DE L'APPLICATION									*
+/***************************************************************************************************/
+
+1- Configurer le fichier "config.ini"
+	
+	Ce fichier contient 4 informations qui seront aussi modifiable au démarage de l'application:
+	
+		1. infoTrainPath :	Le chemin relatif vers le fichier contenant les chemins relatifs vers les
+							fichiers d'apprentissage.
+		
+		2. infoTestPath :	Le chemin relatif vers le fichier contenant les chemins relatifs vers les
+							fichiers de test.
+			
+		3. infoVCPath :		Le chemin relatif vers le fichier contenant les chemins relatifs vers les
+							fichiers de validation croisée.
+			
+		4. bestDataCount :	La grosseur de la base de données à générer et/ou utiliser si elle existe.
+		
+		NB:	Les chemins relatifs prennent en considération que le programme sera appelé au même
+			niveau que les répertoires "labo2_mlp" et "Sorted_Files".
+			
+	Les données à traiter doivent suivre l'architecture "\labo2-mlp\BaseDonnees\tidigits\txt_dist\"
+	et ensuite spécifier le type d'opération soit : "train", "test" ou "validation croisee" puis,
+	"man" ou "woman", suivit des initiales de la personne ayant prononcé le mot. Si cette
+	architecture n'est pas déjà présente, il est possible de la copier du réseau de
+	l'université selon le chemin absolut suivant : "I:\ELE778\Labo\". Prendre le répertoire
+	"labo2-mlp" en entier. Il est important que ce répertoire soit copié au même niveau que les
+	fichiers sources du projet.
+
+	Le nombre de données à traiter doit comprendre un nombre naturel non nul pour fonctionner. Les 
+	valeurs 40, 50 et 60 sont à tester dans ce laboratoire, mais d'autres valeurs sont aussi
+	acceptées.
+	
+	NB: Il est possible de changer l'architecture, mais il faut modifier le fichier "config.ini" en
+		considération, ainsi que le contenu des fichier pointés par les paramètres actuels.
+	
+  	
+2- Exécuter l'application
+		
+	Il y a deux manières de faire fonctionner l'application:
+	
+		1.	En exécutant l'application à partir du fichier "Vocal_Recognition.exe" ou
+			"Vocal_Recognition_Debug_Msg.exe" dans le même dossier que les fichier requis à la
+			section précédente. Il est important que l'exécutable soit au même niveau que les
+			fichiers décris dans la section "ARCHITECTURE ET FICHIERS REQUIS" de ce document afin
+			d'avoir accès au fichier ressources sans modifier les chemins de données actuels.
+	OU
+		2.	En compilant le projet sur Visual Studio, en incluant les fichiers sources et en-tête,
+			puis en exécutant le programme.
+			
+
+3- Visualiser le prétraitement des données
+
+	Lorsque le programme aura terminé sont exécution, une liste de fichiers sera générée sous le
+	répertoire suivant : Sorted_Files\txt_dist\train\man_woman\initiales\chiffreLettre.txt
+	Chaque fichier texte généré contient les X meilleures données (selon le paramètre bestDataCount)
+	pour chaque fichier lues, basé sur l'énergie statique et dynamique du signal. Ces fichier seront
+	ceux utilisés comme entrés du réseau de neurones.
+	
