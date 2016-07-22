@@ -738,6 +738,9 @@ bool NeuralNetwork::Train( vector<FileInfo> trainFiles, vector<FileInfo> vcFiles
 			this->PhaseTwo( trainFiles[fileInd], activFct, OP_TRAIN );
 			//	Calcul et actualise les poids de tout le reseau
 			this->PhaseThree( trainFiles[fileInd], OP_TRAIN );
+			//Normalise les thetas pour reduire le poids des extrêmes
+			this->NormaliseThetas(trainFiles[fileIt], activFct, OP_TRAIN);
+			
 
 			this->trainErrPercent = this->trainAccErr / (fileIt+1);
 			//this->trainErrPercent = this->trainAccErr / trainFiles.size();
@@ -881,6 +884,59 @@ void NeuralNetwork::PhaseThree( FileInfo file, int opType )
 													this->alpha, file.GetBestData() );
 			}
 		}
+	}
+}
+/*-------------------------------------------------------------------------------------
+*	Nom			:	NormaliseThetas
+*	Écris par	:	Xavier Mercure-Gagnon
+*
+*	Description	:	Normalise les thetas selon les extrêmes
+-------------------------------------------------------------------------------------*/
+void NeuralNetwork::NormaliseThetas(FileInfo trainFile, string activFct, int opType)
+{
+	stringstream neurNum;
+	double thetaMax;
+	double thetaMin;
+	double thetaTemp;
+	double thetaNorm;
+
+	int lastLayer = this->layers.size();
+
+	for (int layerIt = 0; layerIt <= lastLayer; layerIt++)
+		//Première à la dernière couche
+	{
+		/*Détermine les thetas max et min d'une couche*/
+		for (int neuroneIt = 0;
+			neuroneIt < this->layers[layerIt].GetNeurones()->size(); neuroneIt++)
+		{
+			thetaTemp = (*(this->layers[layerIt].GetNeurones()))[neuroneIt].GetTheta();
+			if (neuroneIt > 0)
+			{
+				if (thetaTemp > thetaMax)
+				{
+					thetaMax = thetaTemp;
+				}
+				if (thetaTemp < thetaMin)
+				{
+					thetaMin = thetaTemp;
+				}
+			}
+			else
+			{
+				thetaMin = thetaTemp;
+				thetaMax = thetaTemp;
+			}
+		}
+		/***********************************************/
+		/*************Normalise les thetas**************/
+		for (int neuroneIt = 0;
+			neuroneIt < this->layers[layerIt].GetNeurones()->size(); neuroneIt++)
+		{
+			thetaTemp = (*(this->layers[layerIt].GetNeurones()))[neuroneIt].GetTheta();
+			thetaNorm = (thetaTemp - thetaMin) / (thetaMax - thetaMin);
+			(*(this->layers[layerIt].GetNeurones()))[neuroneIt].SetTheta(thetaNorm);
+		}
+		/***********************************************/
 	}
 }
 /*-------------------------------------------------------------------------------------
